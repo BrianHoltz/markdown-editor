@@ -18,8 +18,6 @@ java {
 }
 
 repositories {
-    maven("https://maven.aliyun.com/repository/public")
-    maven("https://maven.aliyun.com/repository/google")
     mavenCentral()
     intellijPlatform {
         defaultRepositories()
