@@ -20,6 +20,10 @@ public class ResourcesController extends BaseController {
 
     private final String controllerPath = "resources";
 
+    public static String getVersionedPath() {
+        return "resources/" + LAST_MODIFIED + "/";
+    }
+
     @Override
     public String getControllerPath() {
         return controllerPath;
@@ -28,6 +32,10 @@ public class ResourcesController extends BaseController {
     @Override
     public FullHttpResponse get(@NotNull QueryStringDecoder urlDecoder, @NotNull FullHttpRequest request, @NotNull ChannelHandlerContext context) {
         String resourceName = getResourceName(urlDecoder);
+        String versionPrefix = "/" + LAST_MODIFIED + "/";
+        if (resourceName.startsWith(versionPrefix)) {
+            resourceName = resourceName.substring(versionPrefix.length() - 1);
+        }
         byte[] data;
         try (InputStream inputStream = PreviewStaticServer.class.getResourceAsStream(resourceName)) {
             if (inputStream == null) {

@@ -30,6 +30,7 @@ import com.shuzijun.markdown.util.FileUtils;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import org.apache.commons.lang.StringUtils;
 import org.cef.browser.CefBrowser;
+import org.cef.CefSettings;
 import org.cef.browser.CefFrame;
 import org.cef.callback.CefContextMenuParams;
 import org.cef.callback.CefMenuModel;
@@ -70,11 +71,14 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
     private final MyMultiPanel multiPanel;
     private final JBLoadingPanel loadingPanel = new JBLoadingPanel(new BorderLayout(), this);
     private final AtomicBoolean initial = new AtomicBoolean(true);
+    private volatile String pendingAnchor;
 
 
     private final CefRequestHandler requestHandler;
     private final CefLifeSpanHandler lifeSpanHandler;
+    private final CefDisplayHandler displayHandler;
     private final JBCefJSQuery selectValueJSQuery;
+    private final JBCefJSQuery appearanceJSQuery;
 
     private final boolean isFileEditor;
     private final String url;
@@ -110,6 +114,7 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
                         }, ModalityState.defaultModalityState());
                     } else {
                         initial.set(false);
+                        scrollToPendingAnchor();
                         ApplicationManager.getApplication().invokeLater(() -> {
                             loadingPanel.stopLoading();
                             multiPanel.select(CONTENT_KEY, true);
@@ -184,11 +189,32 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
             }
         }, getCefBrowser());
         selectValueJSQuery = JBCefJSQuery.create((JBCefBrowserBase)this);
+        getJBCefClient().addDisplayHandler(displayHandler = new CefDisplayHandlerAdapter() {
+            @Override
+            public boolean onConsoleMessage(CefBrowser browser, CefSettings.LogSeverity level, String message, String source, int line) {
+                if (level == CefSettings.LogSeverity.LOGSEVERITY_ERROR ||
+                        level == CefSettings.LogSeverity.LOGSEVERITY_FATAL ||
+                        level == CefSettings.LogSeverity.LOGSEVERITY_WARNING) {
+                    LOG.warn("Markdown page console: " + message + " (" + source.replaceAll("\\?.*$", "") + ":" + line + ")");
+                }
+                return false;
+            }
+        }, getCefBrowser());
         selectValueJSQuery.addHandler(value -> {
             if (StringUtils.isEmpty(value)) {
                 return null;
             }
             CopyPasteManager.getInstance().setContents(new StringSelection(value));
+            return null;
+        });
+        appearanceJSQuery = JBCefJSQuery.create((JBCefBrowserBase)this);
+        appearanceJSQuery.addHandler(value -> {
+            String[] values = value.split(",", -1);
+            if (values.length == 2) {
+                PropertiesComponent properties = PropertiesComponent.getInstance();
+                properties.setValue(PluginConstant.editorToolbarHiddenKey, Boolean.parseBoolean(values[0]), false);
+                properties.setValue(PluginConstant.editorRawHtmlHiddenKey, Boolean.parseBoolean(values[1]), false);
+            }
             return null;
         });
     }
@@ -229,13 +255,18 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
     public void dispose() {
         getJBCefClient().removeRequestHandler(requestHandler, getCefBrowser());
         getJBCefClient().removeLifeSpanHandler(lifeSpanHandler, getCefBrowser());
+        getJBCefClient().removeDisplayHandler(displayHandler, getCefBrowser());
         Disposer.dispose(selectValueJSQuery);
+        Disposer.dispose(appearanceJSQuery);
         super.dispose();
     }
 
     private void openUrl(String frameUrl, String url) {
         if (url.startsWith(URLUtil.FILE_PROTOCOL)) {
-            File file = new File(url.substring((URLUtil.FILE_PROTOCOL + URLUtil.SCHEME_SEPARATOR + FileUtils.separator()).length()));
+            int fragmentIndex = url.indexOf('#');
+            String fragment = fragmentIndex >= 0 ? url.substring(fragmentIndex + 1) : null;
+            String fileUrl = fragmentIndex >= 0 ? url.substring(0, fragmentIndex) : url;
+            File file = new File(fileUrl.substring((URLUtil.FILE_PROTOCOL + URLUtil.SCHEME_SEPARATOR + FileUtils.separator()).length()));
             if (!file.exists() || file.isDirectory()) {
                 openSearchEverywhere(searchText(frameUrl, url));
             } else {
@@ -244,6 +275,13 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
                     FileEditor[] editors = FileEditorManager.getInstance(project).openFile(vf, false);
                     if (editors == null || editors.length == 0) {
                         openSearchEverywhere(vf.getPath());
+                    } else if (StringUtils.isNotEmpty(fragment)) {
+                        for (FileEditor editor : editors) {
+                            if (editor instanceof MarkdownPreviewFileEditor markdownEditor) {
+                                markdownEditor.scrollToAnchor(fragment);
+                                break;
+                            }
+                        }
                     }
                 });
             }
@@ -296,6 +334,20 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
         getCefBrowser().executeJavaScript("updateStyle(" + toJsString(style) + "," + darkTheme + ");", getCefBrowser().getURL(), 0);
     }
 
+    public void scrollToAnchor(String fragment) {
+        pendingAnchor = fragment;
+        scrollToPendingAnchor();
+    }
+
+    private void scrollToPendingAnchor() {
+        String fragment = pendingAnchor;
+        if (initial.get() || StringUtils.isEmpty(fragment)) {
+            return;
+        }
+        pendingAnchor = null;
+        getCefBrowser().executeJavaScript("scrollToHeading(" + toJsString(fragment) + ");", getCefBrowser().getURL(), 0);
+    }
+
     public void updateHeight(int width,int height) {
         if (PropertiesComponent.getInstance().getBoolean(PluginConstant.editorFixToolbarKey,true)){
             getCefBrowser().executeJavaScript("updateHeight(" + width + "," + height + ");", getCefBrowser().getURL(), 0);
@@ -321,7 +373,10 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
         String blur = "function jsAddBlur(){\n" +
                 "        vditor.vditor.ir.element.addEventListener('blur',(event) => {event.stopImmediatePropagation();}, {capture: true,once: true});\n" +
                 "    }\n";
-        return savaTime + copy + cut + paste + blur;
+        String saveAppearance = "function jsSaveAppearance(toolbarHidden, rawHtmlHidden){\n" +
+                appearanceJSQuery.inject("[toolbarHidden, rawHtmlHidden].join(',')") +
+                "    }\n";
+        return savaTime + copy + cut + paste + blur + saveAppearance;
     }
 
     public void browserFind(String txt, boolean forward) {

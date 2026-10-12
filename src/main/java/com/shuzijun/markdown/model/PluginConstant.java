@@ -33,4 +33,8 @@ public class PluginConstant {
     public static final String editorTextOperationKey="markdown.editor.editorTextOperation";
 
     public static final String editorAbsolutePathKey="markdown.editor.editorAbsolutePath";
+
+    public static final String editorToolbarHiddenKey="markdown.editor.toolbarHidden";
+
+    public static final String editorRawHtmlHiddenKey="markdown.editor.rawHtmlHidden";
 }

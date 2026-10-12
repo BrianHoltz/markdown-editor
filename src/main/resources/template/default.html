@@ -1,9 +1,9 @@
 <html>
 <head>
-    <link rel="stylesheet" href="{{service}}resources/vditor/dist/index.css?{{serverToken}}"/>
-    <link rel="stylesheet" href="{{service}}resources/vditor/style.css?{{serverToken}}"/>
-    <script src="{{service}}resources/vditor/dist/index.min.js?{{serverToken}}"></script>
-    <script src="{{service}}resources/vditor/jquery-3.6.0.min.js?{{serverToken}}"></script>
+    <link rel="stylesheet" href="{{service}}{{resources}}vditor/dist/index.css?{{serverToken}}"/>
+    <link rel="stylesheet" href="{{service}}{{resources}}vditor/style.css?{{serverToken}}"/>
+    <script src="{{service}}{{resources}}vditor/dist/index.min.js?{{serverToken}}"></script>
+    <script src="{{service}}{{resources}}vditor/jquery-3.6.0.min.js?{{serverToken}}"></script>
 </head>
 <body class="body">
 <div id="vditor" class="vditor vditor--fullscreen"></div>
@@ -49,12 +49,18 @@
     const fileUrl = "{{service}}markdownFile?file={{filePath}}&projectUrl={{projectUrl}}&projectName={{projectName}}&{{serverToken}}";
     const uploadUrl = "{{service}}uploadFile?file={{filePath}}&projectUrl={{projectUrl}}&projectName={{projectName}}&{{serverToken}}";
     const exportUrl = "{{service}}exportFile?file={{filePath}}&projectUrl={{projectUrl}}&projectName={{projectName}}&{{serverToken}}";
-    const vditorCDN = "{{service}}resources/vditor";
-    const vditorThemeCDN = userTemplate ? "{{service}}assets/vditor/content-theme" : "{{service}}resources/vditor/dist/css/content-theme";
+    const vditorCDN = "{{service}}{{resources}}vditor";
+    const vditorThemeCDN = userTemplate ? "{{service}}assets/vditor/content-theme" : vditorCDN + "/dist/css/content-theme";
     let initError = true;
     let fileValue = "";
     let saveTime = Date.now();
-    const darcula = "{{darcula}}" === "true";
+    let darcula = "{{darcula}}" === "true";
+    let ideaThemeReady = false;
+    const appearance = {
+        toolbarHidden: "{{toolbarHidden}}" === "true",
+        rawHtmlHidden: "{{rawHtmlHidden}}" === "true"
+    };
+    let refreshHtmlOnlyRows = () => {};
 
     window.onload = function () {
         if (userTemplate) {
@@ -86,6 +92,9 @@
                 }
             }
         });
+        initAppearance();
+        initResponsiveToolbar();
+        initLinkEditing();
         /*const contentMenuStyle = document.getElementById("contentMenu").style;
         const notepad = document.getElementsByClassName("vditor-content")[0];
         notepad.addEventListener('contextmenu', function(e) {
@@ -254,12 +263,331 @@
         });
     }
 
+    function applyIdeaTheme() {
+        if (!ideaThemeReady) {
+            return;
+        }
+        vditor.setTheme(darcula ? "dark" : "light", darcula ? "idea-dark" : "idea-light", darcula ? "dracula" : "github", vditorThemeCDN);
+    }
+
+    function syncIdeaTheme() {
+        const style = document.getElementById("ideaStyle");
+        if (style && /^\s*\.vditor(?:--dark)?\s*\{/.test(style.textContent)) {
+            darcula = /^\s*\.vditor--dark\s*\{/.test(style.textContent);
+        }
+        applyIdeaTheme();
+    }
+
+    function applyAppearance() {
+        const rawHtmlHidden = appearance.toolbarHidden || appearance.rawHtmlHidden;
+        document.body.classList.toggle("markdown-toolbar-hidden", appearance.toolbarHidden);
+        document.body.classList.toggle("markdown-raw-html-hidden", rawHtmlHidden);
+        const visibility = document.getElementById("markdown-toolbar-visibility");
+        if (visibility) {
+            visibility.title = appearance.toolbarHidden ? "Show toolbar" : "Hide toolbar";
+            visibility.setAttribute("aria-label", visibility.title);
+            visibility.setAttribute("aria-expanded", String(!appearance.toolbarHidden));
+        }
+        document.querySelectorAll('[data-type="raw-html"]').forEach((button) => {
+            button.setAttribute("aria-pressed", String(rawHtmlHidden));
+            button.classList.toggle("vditor-icon--current", rawHtmlHidden);
+            button.setAttribute("aria-label", rawHtmlHidden ? "Show raw HTML markup" : "Hide raw HTML markup");
+        });
+        if (rawHtmlHidden) {
+            refreshHtmlOnlyRows();
+        }
+    }
+
+    function toggleAppearance(key) {
+        appearance[key] = !appearance[key];
+        applyAppearance();
+        jsSaveAppearance(appearance.toolbarHidden, appearance.rawHtmlHidden);
+    }
+
+    function initAppearance() {
+        const visibility = document.createElement("button");
+        visibility.id = "markdown-toolbar-visibility";
+        visibility.type = "button";
+        visibility.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v4H4zm0 7h4v7H4zm6 0h4v7h-4zm6 0h4v7h-4z" fill="currentColor"/></svg>';
+        visibility.addEventListener("pointerdown", (event) => event.preventDefault());
+        visibility.addEventListener("click", () => {
+            const hiding = !appearance.toolbarHidden;
+            toggleAppearance("toolbarHidden");
+            if (hiding) {
+                vditor.focus();
+            }
+        });
+        document.body.appendChild(visibility);
+
+        let pendingRefresh = 0;
+        refreshHtmlOnlyRows = () => {
+            if (!document.body.classList.contains("markdown-raw-html-hidden") || pendingRefresh) {
+                return;
+            }
+            pendingRefresh = requestAnimationFrame(() => {
+                pendingRefresh = 0;
+                document.querySelectorAll(".vditor-ir .vditor-reset > p, .vditor-wysiwyg .vditor-reset > p").forEach((paragraph) => {
+                    const htmlOnly = Array.from(paragraph.childNodes).every((node) => {
+                        if (node.nodeType === Node.TEXT_NODE) {
+                            return !node.textContent.replace(/[\s\u200b]/g, "");
+                        }
+                        return node instanceof Element && node.matches('[data-type="html-inline"]');
+                    }) && !!paragraph.querySelector('[data-type="html-inline"]');
+                    paragraph.classList.toggle("markdown-html-only", htmlOnly);
+                });
+            });
+        };
+        const observer = new MutationObserver(refreshHtmlOnlyRows);
+        observer.observe(document.getElementById("vditor"), {childList: true, subtree: true, characterData: true});
+        applyAppearance();
+    }
+
+    function initResponsiveToolbar() {
+        const toolbar = document.querySelector(".vditor-toolbar");
+        if (!toolbar) {
+            return;
+        }
+        toolbar.classList.add("markdown-toolbar");
+        const controls = Array.from(toolbar.children).filter((child) =>
+            child instanceof HTMLElement && !child.classList.contains("vditor-toolbar__br"));
+        const overflow = document.createElement("div");
+        overflow.className = "markdown-toolbar-overflow";
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "markdown-toolbar-toggle";
+        toggle.textContent = "»";
+        toggle.title = "More formatting tools";
+        toggle.setAttribute("aria-label", toggle.title);
+        toggle.setAttribute("aria-expanded", "false");
+        const tray = document.createElement("div");
+        tray.className = "markdown-toolbar-tray";
+        tray.setAttribute("role", "group");
+        tray.setAttribute("aria-label", toggle.title);
+        tray.hidden = true;
+        overflow.append(toggle, tray);
+        toolbar.appendChild(overflow);
+        const tooltip = document.createElement("div");
+        tooltip.className = "markdown-toolbar-tooltip";
+        tooltip.setAttribute("role", "tooltip");
+        tooltip.hidden = true;
+        document.body.appendChild(tooltip);
+
+        function hideTooltip() {
+            tooltip.hidden = true;
+        }
+        function showTooltip(event) {
+            const target = event.target instanceof Element ? event.target.closest("button, [aria-label]") : null;
+            if (!target || !toolbar.contains(target)) {
+                return;
+            }
+            const label = target.getAttribute("aria-label") || target.title || target.textContent.trim();
+            if (!label) {
+                return;
+            }
+            tooltip.textContent = label;
+            tooltip.hidden = false;
+            const targetBounds = target.getBoundingClientRect();
+            const tooltipBounds = tooltip.getBoundingClientRect();
+            tooltip.style.left = Math.max(4, Math.min(targetBounds.left, window.innerWidth - tooltipBounds.width - 4)) + "px";
+            tooltip.style.top = Math.min(targetBounds.bottom + 5, window.innerHeight - tooltipBounds.height - 4) + "px";
+        }
+        toolbar.addEventListener("pointerover", showTooltip);
+        toolbar.addEventListener("focusin", showTooltip);
+        toolbar.addEventListener("pointerout", hideTooltip);
+        toolbar.addEventListener("focusout", hideTooltip);
+        toolbar.addEventListener("pointerdown", hideTooltip);
+
+        function close(returnFocus) {
+            hideTooltip();
+            tray.hidden = true;
+            toggle.setAttribute("aria-expanded", "false");
+            if (returnFocus) {
+                toggle.focus();
+            }
+        }
+        function controlName(control) {
+            const button = control.querySelector("[data-type]");
+            return button ? button.getAttribute("data-type") : control.id;
+        }
+        const priority = ["syncedTip", "more", "edit-mode", "headings", "bold", "link", "italic"];
+        function rank(control) {
+            const index = priority.indexOf(controlName(control));
+            return index < 0 ? priority.length : index;
+        }
+        function layout() {
+            if (appearance.toolbarHidden) {
+                return;
+            }
+            const focused = document.activeElement;
+            controls.forEach((control) => toolbar.insertBefore(control, overflow));
+            overflow.hidden = true;
+            const style = getComputedStyle(toolbar);
+            const available = toolbar.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+            const items = controls.filter((control) => !control.classList.contains("vditor-toolbar__divider"));
+            const widths = new Map(items.map((control) => [control, control.getBoundingClientRect().width]));
+            let width = items.reduce((total, control) => total + widths.get(control), 0);
+            if (width > available) {
+                overflow.hidden = false;
+                width += overflow.getBoundingClientRect().width;
+                const candidates = [...items].sort((left, right) =>
+                    rank(right) - rank(left) || items.indexOf(right) - items.indexOf(left));
+                const hidden = new Set();
+                for (const control of candidates) {
+                    if (width <= available) {
+                        break;
+                    }
+                    hidden.add(control);
+                    width -= widths.get(control);
+                }
+                items.filter((control) => hidden.has(control)).forEach((control) => tray.appendChild(control));
+            } else {
+                close(false);
+            }
+            if (focused instanceof HTMLElement && toolbar.contains(focused)) {
+                if (tray.hidden && tray.contains(focused)) {
+                    toggle.focus();
+                } else {
+                    focused.focus({preventScroll: true});
+                }
+            }
+        }
+        toggle.addEventListener("pointerdown", (event) => event.preventDefault());
+        toggle.addEventListener("click", () => {
+            tray.hidden = !tray.hidden;
+            toggle.setAttribute("aria-expanded", String(!tray.hidden));
+        });
+        document.addEventListener("pointerdown", (event) => {
+            if (event.target instanceof Node && !overflow.contains(event.target)) {
+                close(false);
+            }
+        }, true);
+        toolbar.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && !tray.hidden) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                close(true);
+            }
+        }, true);
+        tray.addEventListener("click", (event) => {
+            if (!(event.target instanceof Element)) {
+                return;
+            }
+            const item = event.target.closest(".vditor-toolbar__item");
+            if (item && !item.querySelector(".vditor-panel")) {
+                close(false);
+            }
+        });
+        new ResizeObserver(layout).observe(toolbar);
+        layout();
+    }
+
+    function headingText(heading) {
+        const copy = heading.cloneNode(true);
+        copy.querySelectorAll('[class*="vditor-ir__marker"]').forEach((marker) => marker.remove());
+        return copy.textContent || "";
+    }
+
+    function headingSlug(text) {
+        return text.trim().toLowerCase()
+            .replace(/[^\p{L}\p{N}\p{M}_\- ]/gu, "")
+            .replace(/ /g, "-");
+    }
+
+    function editorHeadings() {
+        const mode = vditor.getCurrentMode();
+        const root = document.querySelector(mode === "sv"
+            ? ".vditor-preview .vditor-reset"
+            : ".vditor-" + mode + " .vditor-reset");
+        return root ? Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6")) : [];
+    }
+
+    function scrollToHeading(fragment) {
+        const target = decodeURIComponent(fragment);
+        if (vditor.getCurrentMode() === "sv") {
+            vditor.setPreviewMode("both");
+            vditor.renderPreview();
+        }
+        const headings = editorHeadings();
+        const used = new Set();
+        let heading = headings.find((element) => {
+            const base = headingSlug(headingText(element));
+            let slug = base;
+            let suffix = 0;
+            while (used.has(slug)) {
+                slug = base + "-" + ++suffix;
+            }
+            used.add(slug);
+            return element.id === target || slug === target.toLowerCase();
+        });
+        if (!heading) {
+            const mode = vditor.getCurrentMode();
+            const root = document.querySelector(mode === "sv"
+                ? ".vditor-preview .vditor-reset"
+                : ".vditor-" + mode + " .vditor-reset");
+            heading = root && Array.from(root.querySelectorAll("a[id], a[name]"))
+                .find((element) => element.id === target || element.getAttribute("name") === target);
+            if (!heading && root) {
+                for (const element of root.querySelectorAll('[data-type="html-inline"]')) {
+                    const template = document.createElement("template");
+                    template.innerHTML = element.textContent.replace(/\u200b/g, "");
+                    const matches = Array.from(template.content.querySelectorAll("a[id], a[name]"))
+                        .some((anchor) => anchor.id === target || anchor.getAttribute("name") === target);
+                    if (matches) {
+                        heading = element.closest("p") || element;
+                        break;
+                    }
+                }
+            }
+        }
+        if (heading && !heading.getClientRects().length) {
+            heading = heading.nextElementSibling || heading.parentElement;
+        }
+        if (!heading) {
+            vditor.tip("Heading not found: " + fragment, 3000);
+            return;
+        }
+        heading.scrollIntoView({block: "start", behavior: "smooth"});
+    }
+
+    function openMarkdownLink(element) {
+        const href = element.getAttribute("href") || element.textContent.trim();
+        if (href.startsWith("#")) {
+            scrollToHeading(href.slice(1));
+        } else {
+            window.open(href);
+        }
+    }
+
+    function initLinkEditing() {
+        window.addEventListener("click", (event) => {
+            if (!event.altKey || event.button !== 0 || !(event.target instanceof Element)) {
+                return;
+            }
+            const link = event.target.closest('a, [data-type="a"]');
+            if (!link || !link.closest(".vditor-content")) {
+                return;
+            }
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            const range = document.caretRangeFromPoint(event.clientX, event.clientY);
+            if (range) {
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        }, true);
+    }
+
     const vditor = new Vditor('vditor', {
         "theme": darcula ? "dark" : "light",
         "height": document.documentElement.clientHeight,
         "lang": "{{Lang}}",
         "cache": {
             "enable": false
+        },
+        "link": {
+            "isOpen": true,
+            click: openMarkdownLink
         },
         "toolbar": [
             {"name": "emoji", "tipPosition": "s"},
@@ -297,6 +625,15 @@
             },
             "|",
             {"name": "edit-mode", "tipPosition": "w"},
+            {
+                "name": "raw-html",
+                "tip": "Hide raw HTML markup (rich editing modes only)",
+                "tipPosition": "s",
+                "icon": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5-7 7 7 7 2-2-5-5 5-5zm8 0-2 2 5 5-5 5 2 2 7-7z" fill="currentColor"/></svg>',
+                click() {
+                    toggleAppearance("rawHtmlHidden");
+                }
+            },
             {
                 "name": "donate",
                 "tip": "donate",
@@ -349,7 +686,9 @@
         },
         "value": initValue(),
         after() {
-            fileValue = vditor.getValue()
+            fileValue = vditor.getValue();
+            ideaThemeReady = true;
+            setTimeout(syncIdeaTheme, 0);
         },
         blur(md) {
             editBlur(md,false)
@@ -362,14 +701,34 @@
         }
     });
 
-    function updateStyle(style, darcula) {
+    function updateStyle(style, darkTheme) {
         let newStyle = document.createElement('style');
         newStyle.id = 'ideaStyle';
-        newStyle.innerHTML = style;
+        newStyle.textContent = style;
         let oldStyle = document.getElementById('ideaStyle');
-        oldStyle.parentNode.replaceChild(newStyle, oldStyle);
-        vditor.setTheme(darcula ? "dark" : "light", darcula ? "idea-dark" : "idea-light", darcula ? "dracula" : "github", vditorThemeCDN)
+        if (oldStyle) {
+            oldStyle.parentNode.replaceChild(newStyle, oldStyle);
+        } else {
+            document.head.appendChild(newStyle);
+        }
+        darcula = darkTheme;
+        applyIdeaTheme();
     }
+
+    const ideaStyleObserver = new MutationObserver((records) => {
+        if (records.some((record) => record.target.id === "ideaStyle" ||
+            (record.target.parentElement && record.target.parentElement.id === "ideaStyle") ||
+            Array.from(record.addedNodes).some((node) => node.id === "ideaStyle"))) {
+            syncIdeaTheme();
+        }
+    });
+    ideaStyleObserver.observe(document.documentElement, {childList: true, subtree: true, characterData: true});
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+            syncIdeaTheme();
+        }
+    });
+    window.addEventListener("pageshow", syncIdeaTheme);
 
 
     function updateHeight(width, height) {

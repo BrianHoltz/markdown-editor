@@ -35,7 +35,12 @@ dependencies {
     implementation("commons-lang:commons-lang:2.6")
 
     intellijPlatform {
-        create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
+        val localIdePath = providers.gradleProperty("localIdePath")
+        if (localIdePath.isPresent) {
+            local(localIdePath.get())
+        } else {
+            create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
+        }
         bundledPlugins("com.intellij.modules.jcef")
     }
 }
@@ -47,8 +52,9 @@ intellijPlatform {
 
         val changelog = project.changelog
         changeNotes = with(changelog) {
+            val releaseVersion = project.version.toString().substringBefore("-local")
             renderItem(
-                (getOrNull(project.version.toString()) ?: getUnreleased())
+                (getOrNull(project.version.toString()) ?: getOrNull(releaseVersion) ?: getUnreleased())
                     .withHeader(false)
                     .withEmptySections(false),
                 Changelog.OutputType.HTML,

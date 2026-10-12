@@ -4,6 +4,7 @@ import com.google.common.escape.Escaper;
 import com.google.common.net.PercentEscaper;
 import com.google.common.net.UrlEscapers;
 import com.intellij.ide.structureView.StructureViewBuilder;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.lang.LanguageStructureViewBuilder;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
@@ -37,6 +38,7 @@ import com.intellij.util.io.URLUtil;
 import com.intellij.util.messages.MessageBusConnection;
 import com.shuzijun.markdown.controller.FileApplicationService;
 import com.shuzijun.markdown.controller.PreviewStaticServer;
+import com.shuzijun.markdown.controller.ResourcesController;
 import com.shuzijun.markdown.model.PluginConstant;
 import com.shuzijun.markdown.util.FileUtils;
 import com.shuzijun.markdown.util.PropertiesUtils;
@@ -217,6 +219,12 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         }
     }
 
+    public void scrollToAnchor(String fragment) {
+        if (myPanel != null) {
+            myPanel.scrollToAnchor(fragment);
+        }
+    }
+
     private String createHtml(boolean isPresentableUrl, MarkdownHtmlPanel tempPanel) {
         InputStream inputStream = null;
 
@@ -229,10 +237,13 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
             }
             String template = new String(FileUtilRt.loadBytes(inputStream));
             return template.replace("{{service}}", servicePath.getScheme() + URLUtil.SCHEME_SEPARATOR + servicePath.getAuthority() + servicePath.getPath())
+                    .replace("{{resources}}", ResourcesController.getVersionedPath())
                     .replace("{{serverToken}}", StringUtils.isNotBlank(servicePath.getParameters()) ? servicePath.getParameters().substring(1) : "")
                     .replace("{{filePath}}", URL_FRAGMENT_ESCAPER.escape(myFile.getPath()))
                     .replace("{{Lang}}", PropertiesUtils.getInfo("Lang"))
                     .replace("{{darcula}}", isDarkTheme(EditorColorsManager.getInstance().getGlobalScheme().getDefaultBackground()) + "")
+                    .replace("{{toolbarHidden}}", PropertiesComponent.getInstance().getBoolean(PluginConstant.editorToolbarHiddenKey, false) + "")
+                    .replace("{{rawHtmlHidden}}", PropertiesComponent.getInstance().getBoolean(PluginConstant.editorRawHtmlHiddenKey, false) + "")
                     .replace("{{userTemplate}}", templateFile.exists() + "")
                     .replace("{{projectUrl}}", isPresentableUrl ? URL_FRAGMENT_ESCAPER.escape(myProject.getPresentableUrl()) : "")
                     .replace("{{projectName}}", isPresentableUrl ? "" : URL_FRAGMENT_ESCAPER.escape(myProject.getName()))
@@ -278,8 +289,9 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
             sb.append("}");
             sb.append("::-webkit-scrollbar-track {background-color:").append(toHexColor(defaultBackground)).append(";}");
             sb.append("::-webkit-scrollbar-thumb {background-color:").append(toHexColor(scrollbarThumbColor)).append(";}");
-            sb.append(".vditor-reset {font-size:").append(editorColorsScheme.getEditorFontSize()).append("px;");
-            sb.append(fontFamily);
+            sb.append(".vditor-sv,.vditor-reset code,.vditor-reset kbd{").append(fontFamily).append("}");
+            sb.append(".vditor-sv{font-size:").append(editorColorsScheme.getEditorFontSize()).append("px;}");
+            sb.append(".vditor-reset {");
             if (text != null) {
                 sb.append("color:").append(toHexColor(text)).append(";");
             }
