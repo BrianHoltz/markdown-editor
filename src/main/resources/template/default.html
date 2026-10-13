@@ -36,12 +36,6 @@
         <path d="M240.64 233.472c-33.792 30.72-50.176 76.8-50.176 136.192 0 22.528 18.432 40.96 40.96 40.96s40.96-18.432 40.96-40.96c0-34.816 8.192-60.416 23.552-74.752 18.432-17.408 44.032-16.384 46.08-16.384 22.528 2.048 41.984-15.36 44.032-37.888 2.048-22.528-15.36-41.984-37.888-44.032-7.168-1.024-63.488-4.096-107.52 36.864z"></path>
     </svg>
 </div>
-<div id="format" style="display: none;">
-    <svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
-        <path d="M1024 1012.48a2119.68 2119.68 0 0 1-45.312-409.6v-228.864a145.92 145.92 0 0 0-146.944-146.176h-128v-128a100.096 100.096 0 0 0-99.84-99.84h-182.016a100.608 100.608 0 0 0-100.352 99.84v128h-128a145.92 145.92 0 0 0-145.664 146.176v228.608a2139.904 2139.904 0 0 1-45.312 409.6L0 1024h1024zM421.888 99.84h182.016v128h-182.272v-128z m274.432 742.4l3.328-146.944a51.2 51.2 0 0 0-25.6-43.52 48.896 48.896 0 0 0-51.2 0 51.2 51.2 0 0 0-25.6 43.52l-2.304 121.344-4.352 69.12L588.8 921.6h-185.856a532.992 532.992 0 0 0 23.296-160.256 51.2 51.2 0 1 0-100.096 0A420.352 420.352 0 0 1 296.448 921.6H120.832l2.304-13.824a2033.92 2033.92 0 0 0 25.6-307.2v-39.168h728.576v67.072a2063.104 2063.104 0 0 0 25.6 281.6l2.304 13.824h-216.064zM877.312 460.8H148.48v-91.392a45.568 45.568 0 0 1 45.312-40.96h642.56a45.312 45.312 0 0 1 40.96 45.312z"></path>
-    </svg>
-</div>
-
 </body>
 <script>
     $.ajaxSettings.async = false;
@@ -177,10 +171,56 @@
         button.className = "markdown-save-button";
         button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h13l4 4v14H3V3zm3 2v6h10V5zm0 10v4h10v-4zM13 6h2v4h-2z" fill="currentColor"/></svg>';
         button.addEventListener("pointerdown", (event) => event.preventDefault());
-        button.addEventListener("click", () => editBlur(vditor.getValue(), false));
+        button.addEventListener("click", () => editBlur(vditor.getValue(), true));
         synced.appendChild(button);
+
+        const reloadItem = document.createElement("div");
+        reloadItem.className = "vditor-toolbar__item";
+        reloadItem.id = "reloadTip";
+        const reloadButton = document.createElement("button");
+        reloadButton.type = "button";
+        reloadButton.className = "markdown-reload-button";
+        reloadButton.title = "Reload from disk";
+        reloadButton.setAttribute("aria-label", reloadButton.title);
+        reloadButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" fill="currentColor"/></svg>';
+        reloadButton.addEventListener("pointerdown", (event) => event.preventDefault());
+        reloadButton.addEventListener("click", reloadFile);
+        reloadItem.appendChild(reloadButton);
+
+        vditor.vditor.toolbar.element.prepend(reloadItem);
         vditor.vditor.toolbar.element.prepend(synced);
         updateSyncState(isSynced ? "saved" : "unsaved");
+    }
+
+    let reloadArmed = false;
+    let reloadArmTimer = null;
+
+    function reloadFile() {
+        if (initError) {
+            vditor.tip("Get init file request error, Don't reload.", 1000);
+            return;
+        }
+        if (vditor.getValue() !== fileValue) {
+            if (!reloadArmed) {
+                reloadArmed = true;
+                vditor.tip("Unsaved changes — click reload again to discard them", 3000);
+                clearTimeout(reloadArmTimer);
+                reloadArmTimer = setTimeout(() => {
+                    reloadArmed = false;
+                }, 3000);
+                return;
+            }
+            reloadArmed = false;
+            clearTimeout(reloadArmTimer);
+        }
+        $.get(fileUrl, function (data) {
+            vditor.setValue(data);
+            fileValue = vditor.getValue();
+            saveTime = Date.now() + 5000;
+            syncedTip(true, data);
+        }).fail(function () {
+            vditor.tip("Get file request error", 0);
+        })
     }
 
     function updateSyncState(state) {
@@ -413,7 +453,7 @@
             const button = control.querySelector("[data-type]");
             return button ? button.getAttribute("data-type") : control.id;
         }
-        const priority = ["syncedTip", "more", "edit-mode", "headings", "bold", "link", "italic"];
+        const priority = ["syncedTip", "reloadTip", "more", "edit-mode", "headings", "bold", "link", "italic"];
         function rank(control) {
             const index = priority.indexOf(controlName(control));
             return index < 0 ? priority.length : index;
@@ -618,15 +658,6 @@
             "|",
             {"name": "undo", "tipPosition": "s"},
             {"name": "redo", "tipPosition": "s"},
-            {
-                "name": "format",
-                "tip": "format",
-                "tipPosition": "s",
-                "icon": document.getElementById("format").innerHTML,
-                click() {
-                    editBlur(vditor.getValue(),true)
-                }
-            },
             "|",
             {"name": "edit-mode", "tipPosition": "w"},
             {

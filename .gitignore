@@ -1,4 +1,4 @@
-# Compiled class file
+his is stg-only for now, we won't work on prod until this soaks in stg and we have a good  rear-view-mirror perspective of what the overall integration looks like.his is stg-only for now, we won't work on prod until this soaks in stg and we have a good  rear-view-mirror perspective of what the overall integration looks like.# Compiled class file
 *.class
 
 # Log file
@@ -142,3 +142,6 @@ hs_err_pid*
 **/.DS_Store
 src/main/resources/vditor/dist/images/emoji/
 .intellijPlatform
+
+# Timestamped rollback copies of jars installed over the live plugin
+/install-backups/

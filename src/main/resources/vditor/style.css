@@ -162,7 +162,8 @@ body.markdown-raw-html-hidden .markdown-html-only {
     display: none !important;
 }
 
-.markdown-save-button {
+.markdown-save-button,
+.markdown-reload-button {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -175,7 +176,8 @@ body.markdown-raw-html-hidden .markdown-html-only {
     background: transparent;
 }
 
-.markdown-save-button svg {
+.markdown-save-button svg,
+.markdown-reload-button svg {
     width: 16px;
     height: 16px;
 }
@@ -185,12 +187,15 @@ body.markdown-raw-html-hidden .markdown-html-only {
 }
 
 .markdown-save-button:hover,
-.markdown-save-button:focus-visible {
+.markdown-save-button:focus-visible,
+.markdown-reload-button:hover,
+.markdown-reload-button:focus-visible {
     color: var(--toolbar-icon-hover-color);
     background: rgba(128, 128, 128, .15);
 }
 
-.markdown-save-button:focus-visible {
+.markdown-save-button:focus-visible,
+.markdown-reload-button:focus-visible {
     outline: 1px solid var(--toolbar-icon-hover-color);
 }
 
