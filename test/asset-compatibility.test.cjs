@@ -71,3 +71,8 @@ test('dark code blocks do not retain Vditor light background imagery', () => {
     assert.match(css, /\.vditor--dark \.vditor-reset pre > code \{[^}]*background-color: var\(--panel-background-color\) !important;/s)
     assert.match(css, /\.vditor--dark \.vditor-reset pre > code \{[^}]*background-image: none !important;/s)
 })
+
+test('toolbar visibility control inherits IDEA theme variables on the body', () => {
+    const editor = fs.readFileSync(path.join(__dirname, '../src/main/java/com/shuzijun/markdown/editor/MarkdownPreviewFileEditor.java'), 'utf8')
+    assert.match(editor, /\.vditor--dark,body"\s*:\s*"\.vditor,body"/)
+})

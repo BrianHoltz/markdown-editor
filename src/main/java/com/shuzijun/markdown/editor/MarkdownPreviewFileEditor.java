@@ -290,7 +290,7 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
                     "\"Android Emoji\",\"EmojiSymbols\";";
             StringBuilder sb = new StringBuilder(isTag ? "<style id=\"ideaStyle\">" : "");
             boolean darkTheme = isDarkTheme(defaultBackground);
-            sb.append(darkTheme ? ".vditor--dark" : ".vditor").append("{--panel-background-color:").append(toHexColor(defaultBackground))
+            sb.append(darkTheme ? ".vditor--dark,body" : ".vditor,body").append("{--panel-background-color:").append(toHexColor(defaultBackground))
                     .append(";--textarea-background-color:").append(toHexColor(defaultBackground)).append(";");
             sb.append("--toolbar-background-color:").append(toHexColor(JBColor.background())).append(";");
             sb.append("--border-color:").append(toHexColor(JBColor.border())).append(";");
