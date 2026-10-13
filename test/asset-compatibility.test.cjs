@@ -56,6 +56,9 @@ test('preview preferences and whole-browser IDEA zoom have live listeners', () =
     assert.match(editor, /myPanel.setZoomLevel\(UISettings.getInstance\(\).getCurrentIdeScale\(\)\)/)
     const css = fs.readFileSync(path.join(resources, 'vditor/style.css'), 'utf8')
     assert.doesNotMatch(css, /font-size: 13px !important/)
+    const typography = fs.readFileSync(path.join(__dirname, '../src/main/java/com/shuzijun/markdown/editor/PreviewTypography.java'), 'utf8')
+    assert.match(typography, /settings\.getState\(\)\.getFontSize\(\) \+ "px/)
+    assert.doesNotMatch(typography, /normalizeScaledSize/)
 })
 
 test('content-theme colors follow IDEA light and dark variables', () => {

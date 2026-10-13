@@ -3,7 +3,6 @@ package com.shuzijun.markdown.editor;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import org.intellij.plugins.markdown.settings.MarkdownPreviewSettings;
-import com.intellij.ui.jcef.JBCefApp;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +22,7 @@ final class PreviewTypography {
     static String css() {
         MarkdownPreviewSettings settings = ApplicationManager.getApplication().getService(MarkdownPreviewSettings.class);
         return ":root{--markdown-preview-font-family:" + FONT_FAMILY
-                + ";--markdown-preview-font-size:" + JBCefApp.normalizeScaledSize(settings.getState().getFontSize()) + "px;}" + TYPOGRAPHY;
+                + ";--markdown-preview-font-size:" + settings.getState().getFontSize() + "px;}" + TYPOGRAPHY;
     }
 
     private static String loadStylesheet() {

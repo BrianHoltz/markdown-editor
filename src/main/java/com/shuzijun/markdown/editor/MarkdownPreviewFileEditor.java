@@ -100,7 +100,7 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         try {
             tempPanel = new MarkdownHtmlPanel(url, project, true);
             tempPanel.loadMyHTML(createHtml(isPresentableUrl, tempPanel), url);
-            tempPanel.setZoomLevel(1.0);
+            tempPanel.setZoomLevel(UISettings.getInstance().getCurrentIdeScale());
             myHtmlPanelWrapper.add(tempPanel.getComponent(), BorderLayout.CENTER);
 
             MarkdownHtmlPanel finalTempPanel = tempPanel;
@@ -270,8 +270,8 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         ApplicationManager.getApplication().invokeLater(() -> {
             if (myPanel == null || myPanel.isDisposed()) return;
             myPanel.updateStyle(getStyle(false), isDarkTheme(EditorColorsManager.getInstance().getGlobalScheme().getDefaultBackground()));
-            // Match the built-in preview: normalize font sizes without a second browser zoom.
-            myPanel.setZoomLevel(1.0);
+            // JBCefBrowserBase takes a linear scale, not CefBrowser's logarithmic zoom.
+            myPanel.setZoomLevel(UISettings.getInstance().getCurrentIdeScale());
         });
     }
 

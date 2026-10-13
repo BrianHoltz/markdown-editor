@@ -202,6 +202,7 @@ body.markdown-raw-html-hidden .markdown-html-only {
 .vditor-ir pre.vditor-reset {
     font-family: var(--markdown-preview-font-family) !important;
     font-size: var(--markdown-preview-font-size) !important;
+    line-height: 1.4 !important;
 }
 
 .vditor-ir pre.vditor-reset,
