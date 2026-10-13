@@ -267,7 +267,7 @@
         if (!ideaThemeReady) {
             return;
         }
-        vditor.setTheme(darcula ? "dark" : "light", darcula ? "idea-dark" : "idea-light", darcula ? "dracula" : "github", vditorThemeCDN);
+        vditor.setTheme(darcula ? "dark" : "light", darcula ? "idea-dark" : "idea-light", darcula ? "github-dark" : "github", vditorThemeCDN);
     }
 
     function syncIdeaTheme() {
@@ -669,7 +669,7 @@
             },
             "maxWidth": Math.min(Math.max($(window).width() - 100, 720), 1080),
             "actions": ["desktop", "tablet", "mobile"],
-            "hljs": {"style": darcula ? "dracula" : "github"},
+            "hljs": {"style": darcula ? "github-dark" : "github"},
             "math": {
                 "inlineDigit": true
             }

@@ -281,6 +281,10 @@ body.markdown-raw-html-hidden .markdown-html-only {
     background-image: none !important;
 }
 
+.vditor--dark .vditor-reset pre > code.hljs {
+    color: var(--textarea-text-color) !important;
+}
+
 .vditor-reset kbd {
     color: var(--textarea-text-color) !important;
     background-color: var(--panel-background-color) !important;

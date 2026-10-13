@@ -72,6 +72,14 @@ test('dark code blocks do not retain Vditor light background imagery', () => {
     assert.match(css, /\.vditor--dark \.vditor-reset pre > code \{[^}]*background-image: none !important;/s)
 })
 
+test('dark code blocks use a readable dark highlight palette', () => {
+    const template = fs.readFileSync(path.join(resources, 'template/default.html'), 'utf8')
+    assert.match(template, /darcula \? "github-dark" : "github"/)
+    assert.match(template, /"hljs": \{"style": darcula \? "github-dark" : "github"\}/)
+    const css = fs.readFileSync(path.join(resources, 'vditor/style.css'), 'utf8')
+    assert.match(css, /\.vditor--dark \.vditor-reset pre > code\.hljs \{[^}]*color: var\(--textarea-text-color\) !important;/s)
+})
+
 test('toolbar visibility control inherits IDEA theme variables on the body', () => {
     const editor = fs.readFileSync(path.join(__dirname, '../src/main/java/com/shuzijun/markdown/editor/MarkdownPreviewFileEditor.java'), 'utf8')
     assert.match(editor, /\.vditor--dark,body"\s*:\s*"\.vditor,body"/)
