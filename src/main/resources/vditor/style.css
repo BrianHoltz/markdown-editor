@@ -276,6 +276,11 @@ body.markdown-raw-html-hidden .markdown-html-only {
     border-left-color: var(--border-color) !important;
 }
 
+.vditor--dark .vditor-reset pre > code {
+    background-color: var(--panel-background-color) !important;
+    background-image: none !important;
+}
+
 .vditor-reset kbd {
     color: var(--textarea-text-color) !important;
     background-color: var(--panel-background-color) !important;

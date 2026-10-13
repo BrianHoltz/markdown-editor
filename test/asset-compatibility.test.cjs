@@ -65,3 +65,9 @@ test('content-theme colors follow IDEA light and dark variables', () => {
     assert.match(css, /border-color: var\(--border-color\) !important;/)
     assert.match(css, /\.vditor--dark \.vditor-panel::after/)
 })
+
+test('dark code blocks do not retain Vditor light background imagery', () => {
+    const css = fs.readFileSync(path.join(resources, 'vditor/style.css'), 'utf8')
+    assert.match(css, /\.vditor--dark \.vditor-reset pre > code \{[^}]*background-color: var\(--panel-background-color\) !important;/s)
+    assert.match(css, /\.vditor--dark \.vditor-reset pre > code \{[^}]*background-image: none !important;/s)
+})
