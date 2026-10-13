@@ -26,7 +26,7 @@
     border-radius: 4px;
     color: var(--toolbar-icon-color);
     background: var(--toolbar-background-color);
-    opacity: .65;
+    opacity: 1;
 }
 
 #markdown-toolbar-visibility:hover,
