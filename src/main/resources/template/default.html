@@ -736,13 +736,9 @@
 
 
     function updateHeight(width, height) {
-        setTimeout(function (width, height) {
-            if (window.innerHeight < height) {
-                return
-            }
-            let vditorDom = document.getElementById('vditor');
-            vditorDom.style.paddingTop = (window.innerHeight - height) + "px";
-        }, 500, width, height)
+        // The toolbar is pinned to the editor top; padding the whole editor by
+        // the host/webview height difference creates a blank strip above it.
+        document.getElementById('vditor').style.paddingTop = "0";
     }
 </script>
 <script>
