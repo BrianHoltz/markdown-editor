@@ -30,11 +30,11 @@ test('all bundled template assets share the cache-isolated resource prefix', () 
     assert.match(controller, /return "resources\/" \+ LAST_MODIFIED \+ "\/"/)
 })
 
-test('rich text uses compact system typography and wrapping tables', () => {
+test('rich text follows preview typography and retains wrapping tables', () => {
     const css = fs.readFileSync(path.join(resources, 'vditor/style.css'), 'utf8')
     const typography = css.match(/\.vditor \.vditor-reset,\s*\.vditor-ir pre\.vditor-reset \{([^}]+)\}/)[1]
-    assert.match(typography, /font-family: -apple-system, BlinkMacSystemFont,.*sans-serif !important;/)
-    assert.match(typography, /font-size: 13px !important;/)
+    assert.match(typography, /font-family: var\(--markdown-preview-font-family\) !important;/)
+    assert.match(typography, /font-size: var\(--markdown-preview-font-size\) !important;/)
     assert.match(typography, /line-height: 1\.2 !important;/)
     const table = css.match(/\.vditor-reset table \{([^}]+)\}/)[1]
     assert.match(table, /width: 100%;/)
@@ -46,4 +46,14 @@ test('rich text uses compact system typography and wrapping tables', () => {
     const styles = fs.readFileSync(path.join(__dirname, '../src/main/java/com/shuzijun/markdown/editor/MarkdownPreviewFileEditor.java'), 'utf8')
     assert.match(styles, /\.vditor-sv,\.vditor-reset code,\.vditor-reset kbd\{/)
     assert.doesNotMatch(styles, /sb\.append\("\.vditor-reset \{font-size:/)
+})
+
+test('preview preferences and whole-browser IDEA zoom have live listeners', () => {
+    const editor = fs.readFileSync(path.join(__dirname, '../src/main/java/com/shuzijun/markdown/editor/MarkdownPreviewFileEditor.java'), 'utf8')
+    assert.match(editor, /MarkdownPreviewSettings.ChangeListener.TOPIC/)
+    assert.match(editor, /UISettingsListener.TOPIC/)
+    assert.match(editor, /tempPanel.setZoomLevel\(UISettings.getInstance\(\).getCurrentIdeScale\(\)\)/)
+    assert.match(editor, /myPanel.setZoomLevel\(UISettings.getInstance\(\).getCurrentIdeScale\(\)\)/)
+    const css = fs.readFileSync(path.join(resources, 'vditor/style.css'), 'utf8')
+    assert.doesNotMatch(css, /font-size: 13px !important/)
 })

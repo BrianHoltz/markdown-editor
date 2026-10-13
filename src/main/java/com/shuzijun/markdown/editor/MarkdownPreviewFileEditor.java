@@ -4,6 +4,8 @@ import com.google.common.escape.Escaper;
 import com.google.common.net.PercentEscaper;
 import com.google.common.net.UrlEscapers;
 import com.intellij.ide.structureView.StructureViewBuilder;
+import com.intellij.ide.ui.UISettings;
+import com.intellij.ide.ui.UISettingsListener;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.lang.LanguageStructureViewBuilder;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -13,7 +15,6 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.colors.EditorColorsListener;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.colors.EditorColorsScheme;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -47,6 +48,7 @@ import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.ide.BuiltInServerManager;
+import org.intellij.plugins.markdown.settings.MarkdownPreviewSettings;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -98,6 +100,7 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         try {
             tempPanel = new MarkdownHtmlPanel(url, project, true);
             tempPanel.loadMyHTML(createHtml(isPresentableUrl, tempPanel), url);
+            tempPanel.setZoomLevel(UISettings.getInstance().getCurrentIdeScale());
             myHtmlPanelWrapper.add(tempPanel.getComponent(), BorderLayout.CENTER);
 
             MarkdownHtmlPanel finalTempPanel = tempPanel;
@@ -140,13 +143,9 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         fileApplicationService.putVirtualFile(myFile.getPath(), isPresentableUrl ? project.getPresentableUrl() : project.getName(), myFile);
 
         MessageBusConnection settingsConnection = ApplicationManager.getApplication().getMessageBus().connect(this);
-        settingsConnection.subscribe(EditorColorsManager.TOPIC, new EditorColorsListener() {
-            @Override
-            public void globalSchemeChange(@Nullable EditorColorsScheme scheme) {
-                EditorColorsScheme currentScheme = scheme == null ? EditorColorsManager.getInstance().getGlobalScheme() : scheme;
-                myPanel.updateStyle(getStyle(false), isDarkTheme(currentScheme.getDefaultBackground()));
-            }
-        });
+        settingsConnection.subscribe(EditorColorsManager.TOPIC, scheme -> refreshAppearance());
+        settingsConnection.subscribe(UISettingsListener.TOPIC, settings -> refreshAppearance());
+        settingsConnection.subscribe(MarkdownPreviewSettings.ChangeListener.TOPIC, settings -> refreshAppearance());
 
     }
 
@@ -267,6 +266,15 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         return myFile;
     }
 
+    private void refreshAppearance() {
+        ApplicationManager.getApplication().invokeLater(() -> {
+            if (myPanel == null || myPanel.isDisposed()) return;
+            myPanel.updateStyle(getStyle(false), isDarkTheme(EditorColorsManager.getInstance().getGlobalScheme().getDefaultBackground()));
+            // JBCefBrowserBase takes a linear scale, not CefBrowser's logarithmic zoom.
+            myPanel.setZoomLevel(UISettings.getInstance().getCurrentIdeScale());
+        });
+    }
+
     private String getStyle(boolean isTag) {
         try {
             EditorColorsScheme editorColorsScheme = EditorColorsManager.getInstance().getGlobalScheme();
@@ -289,8 +297,9 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
             sb.append("}");
             sb.append("::-webkit-scrollbar-track {background-color:").append(toHexColor(defaultBackground)).append(";}");
             sb.append("::-webkit-scrollbar-thumb {background-color:").append(toHexColor(scrollbarThumbColor)).append(";}");
+            sb.append(PreviewTypography.css());
             sb.append(".vditor-sv,.vditor-reset code,.vditor-reset kbd{").append(fontFamily).append("}");
-            sb.append(".vditor-sv{font-size:").append(editorColorsScheme.getEditorFontSize()).append("px;}");
+            sb.append(".vditor-sv{font-size:").append(editorColorsScheme.getEditorFontSize2D()).append("px;}");
             sb.append(".vditor-reset {");
             if (text != null) {
                 sb.append("color:").append(toHexColor(text)).append(";");

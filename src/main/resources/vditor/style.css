@@ -188,8 +188,8 @@ body.markdown-raw-html-hidden .markdown-html-only {
 
 .vditor .vditor-reset,
 .vditor-ir pre.vditor-reset {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", system-ui, "Ubuntu", "Droid Sans", sans-serif !important;
-    font-size: 13px !important;
+    font-family: var(--markdown-preview-font-family) !important;
+    font-size: var(--markdown-preview-font-size) !important;
     line-height: 1.2 !important;
 }
 
@@ -197,11 +197,6 @@ body.markdown-raw-html-hidden .markdown-html-only {
 .vditor-wysiwyg pre.vditor-reset {
     padding-left: 35px !important;
     padding-right: 35px !important;
-}
-
-.vditor-sv,
-.vditor-ir {
-    font-size: 13px !important;
 }
 
 .vditor-reset h1,

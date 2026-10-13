@@ -39,7 +39,7 @@ dependencies {
         } else {
             create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
         }
-        bundledPlugins("com.intellij.modules.jcef")
+        bundledPlugins("com.intellij.modules.jcef", "org.intellij.plugins.markdown")
     }
 }
 
