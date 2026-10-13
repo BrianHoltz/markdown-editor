@@ -35,7 +35,7 @@ test('rich text follows preview typography and retains wrapping tables', () => {
     const typography = css.match(/\.vditor \.vditor-reset,\s*\.vditor-ir pre\.vditor-reset \{([^}]+)\}/)[1]
     assert.match(typography, /font-family: var\(--markdown-preview-font-family\) !important;/)
     assert.match(typography, /font-size: var\(--markdown-preview-font-size\) !important;/)
-    assert.match(typography, /line-height: 1\.2 !important;/)
+    assert.match(typography, /line-height: 1\.4 !important;/)
     const table = css.match(/\.vditor-reset table \{([^}]+)\}/)[1]
     assert.match(table, /width: 100%;/)
     assert.match(table, /max-width: 100%;/)
