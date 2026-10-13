@@ -169,10 +169,17 @@
     }
 
     function appendSyncedTip(isSynced) {
-        let synced = document.createElement("span");
-        synced.className = "vditor-counter markdown-sync-state vditor-tooltipped vditor-tooltipped__nw";
+        const synced = document.createElement("div");
+        synced.className = "vditor-toolbar__item markdown-sync-state";
         synced.id = "syncedTip";
-        vditor.vditor.toolbar.element.appendChild(synced);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "markdown-save-button";
+        button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h13l4 4v14H3V3zm3 2v6h10V5zm0 10v4h10v-4zM13 6h2v4h-2z" fill="currentColor"/></svg>';
+        button.addEventListener("pointerdown", (event) => event.preventDefault());
+        button.addEventListener("click", () => editBlur(vditor.getValue(), false));
+        synced.appendChild(button);
+        vditor.vditor.toolbar.element.prepend(synced);
         updateSyncState(isSynced ? "saved" : "unsaved");
     }
 
@@ -181,20 +188,17 @@
         if (!synced) {
             return;
         }
-        synced.className = "vditor-counter markdown-sync-state markdown-sync-state--" + state + " vditor-tooltipped vditor-tooltipped__nw";
-        if (state === "saved") {
-            synced.title = "Saved on disk";
-            synced.innerHTML = "Saved";
-        } else if (state === "saving") {
-            synced.title = "Saving changes";
-            synced.innerHTML = "Saving...";
-        } else if (state === "failed") {
-            synced.title = "Save failed";
-            synced.innerHTML = "Failed";
-        } else {
-            synced.title = "Unsaved changes";
-            synced.innerHTML = "Unsaved";
-        }
+        synced.className = "vditor-toolbar__item markdown-sync-state markdown-sync-state--" + state;
+        const button = synced.querySelector("button");
+        const labels = {
+            saved: "Saved on disk",
+            saving: "Saving changes",
+            failed: "Save failed — click to retry",
+            unsaved: "Unsaved changes — click to save"
+        };
+        button.title = labels[state];
+        button.setAttribute("aria-label", button.title);
+        button.setAttribute("aria-busy", String(state === "saving"));
     }
 
     function syncedTip(isSynced, md) {

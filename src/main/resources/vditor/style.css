@@ -162,28 +162,40 @@ body.markdown-raw-html-hidden .markdown-html-only {
     display: none !important;
 }
 
-.markdown-sync-state {
-    border-radius: 10px;
-    font-size: 12px;
-    line-height: 18px;
-    margin-left: 6px;
-    min-width: 52px;
-    padding: 0 8px;
-    text-align: center;
+.markdown-save-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 34px;
+    padding: 6px 5px;
+    border: 0;
+    border-radius: 3px;
+    color: var(--toolbar-icon-color);
+    background: transparent;
 }
 
-.markdown-sync-state--saved {
-    opacity: .72;
+.markdown-save-button svg {
+    width: 16px;
+    height: 16px;
 }
 
-.markdown-sync-state--unsaved,
-.markdown-sync-state--saving {
-    opacity: .9;
+.markdown-sync-state--saved .markdown-save-button svg {
+    opacity: .4;
 }
 
-.markdown-sync-state--failed {
+.markdown-save-button:hover,
+.markdown-save-button:focus-visible {
+    color: var(--toolbar-icon-hover-color);
+    background: rgba(128, 128, 128, .15);
+}
+
+.markdown-save-button:focus-visible {
+    outline: 1px solid var(--toolbar-icon-hover-color);
+}
+
+.markdown-sync-state--failed .markdown-save-button {
     color: #c75450;
-    opacity: 1;
 }
 
 .vditor .vditor-reset,
