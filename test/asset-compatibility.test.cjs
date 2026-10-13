@@ -57,3 +57,11 @@ test('preview preferences and whole-browser IDEA zoom have live listeners', () =
     const css = fs.readFileSync(path.join(resources, 'vditor/style.css'), 'utf8')
     assert.doesNotMatch(css, /font-size: 13px !important/)
 })
+
+test('content-theme colors follow IDEA light and dark variables', () => {
+    const css = fs.readFileSync(path.join(resources, 'vditor/style.css'), 'utf8')
+    assert.match(css, /\.vditor-reset \{\s*color: var\(--textarea-text-color\);/)
+    assert.match(css, /background-color: var\(--panel-background-color\) !important;/)
+    assert.match(css, /border-color: var\(--border-color\) !important;/)
+    assert.match(css, /\.vditor--dark \.vditor-panel::after/)
+})

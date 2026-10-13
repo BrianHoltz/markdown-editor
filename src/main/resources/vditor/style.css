@@ -256,6 +256,37 @@ body.markdown-raw-html-hidden .markdown-html-only {
     background-color : rgba(0,0,0,0) !important;
 }
 
+.vditor-reset {
+    color: var(--textarea-text-color);
+}
+
+.vditor-reset table tr,
+.vditor-reset table td,
+.vditor-reset table th {
+    background-color: var(--panel-background-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+.vditor-reset hr {
+    background-color: var(--border-color) !important;
+}
+
+.vditor-reset blockquote {
+    color: var(--blockquote-color) !important;
+    border-left-color: var(--border-color) !important;
+}
+
+.vditor-reset kbd {
+    color: var(--textarea-text-color) !important;
+    background-color: var(--panel-background-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+.vditor--dark .vditor-panel::after {
+    color: var(--textarea-text-color);
+    background-color: var(--toolbar-background-color);
+}
+
 ::-webkit-scrollbar {
     width: 8px; height: 8px;
 }
