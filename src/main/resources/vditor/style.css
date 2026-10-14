@@ -141,8 +141,11 @@ body.markdown-toolbar-hidden .vditor-toolbar {
     display: none;
 }
 
-body.markdown-toolbar-hidden .vditor-ir .vditor-reset > :is(h1,h2,h3,h4,h5,h6)::before,
-body.markdown-toolbar-hidden .vditor-wysiwyg .vditor-reset :is(h1,h2,h3,h4,h5,h6)::before,
+.vditor-ir .vditor-reset > :is(h1,h2,h3,h4,h5,h6)::before,
+.vditor-wysiwyg > .vditor-reset > :is(h1,h2,h3,h4,h5,h6)::before {
+    content: none !important;
+}
+
 body.markdown-toolbar-hidden :is(.vditor-ir,.vditor-wysiwyg) :is([data-type="link-ref-defs-block"],[data-type="footnotes-block"],.vditor-toc)::before,
 body.markdown-toolbar-hidden .vditor-wysiwyg .vditor-wysiwyg__block::before {
     content: none !important;
@@ -212,7 +215,7 @@ body.markdown-raw-html-hidden .markdown-html-only {
 
 .vditor-ir pre.vditor-reset,
 .vditor-wysiwyg pre.vditor-reset {
-    padding-left: 35px !important;
+    padding-left: 12px !important;
     padding-right: 35px !important;
 }
 
