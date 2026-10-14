@@ -316,8 +316,8 @@
 
     function syncIdeaTheme() {
         const style = document.getElementById("ideaStyle");
-        if (style && /^\s*\.vditor(?:--dark)?\s*\{/.test(style.textContent)) {
-            darcula = /^\s*\.vditor--dark\s*\{/.test(style.textContent);
+        if (style && /^\s*\.vditor(?:--dark)?\s*,\s*body\s*\{/.test(style.textContent)) {
+            darcula = /^\s*\.vditor--dark\s*,\s*body\s*\{/.test(style.textContent);
         }
         applyIdeaTheme();
     }

@@ -361,10 +361,6 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
             Color defaultBackground = editorColorsScheme.getDefaultBackground();
 
             Color text = editorColorsScheme.getDefaultForeground();
-            Color scrollbarThumbColor = UIManager.getColor("ScrollBar.thumb");
-            if (scrollbarThumbColor == null) {
-                scrollbarThumbColor = text == null ? defaultBackground : text;
-            }
             String fontFamily = "font-family:\"" + editorColorsScheme.getEditorFontName() + "\",\"Helvetica Neue\",\"Luxi Sans\",\"DejaVu Sans\"," +
                     "\"Hiragino Sans GB\",\"Microsoft Yahei\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Noto Color Emoji\",\"Segoe UI Symbol\"," +
                     "\"Android Emoji\",\"EmojiSymbols\";";
@@ -376,7 +372,12 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
             sb.append("--border-color:").append(toHexColor(JBColor.border())).append(";");
             sb.append("}");
             sb.append("::-webkit-scrollbar-track {background-color:").append(toHexColor(defaultBackground)).append(";}");
-            sb.append("::-webkit-scrollbar-thumb {background-color:").append(toHexColor(scrollbarThumbColor)).append(";}");
+            Color scrollbarColor = darkTheme
+                    ? new Color(255, 255, 255, 96)
+                    : new Color(0, 0, 0, 96);
+            sb.append("::-webkit-scrollbar-thumb {background-color:").append(toHexColor(scrollbarColor)).append(";}");
+            sb.append("html {scrollbar-color:").append(toHexColor(scrollbarColor)).append(" ")
+                    .append(toHexColor(defaultBackground)).append(";}");
             sb.append(PreviewTypography.css());
             sb.append(".vditor-sv,.vditor-reset code,.vditor-reset kbd{").append(fontFamily).append("}");
             sb.append(".vditor-sv{font-size:").append(editorColorsScheme.getEditorFontSize2D()).append("px;}");
