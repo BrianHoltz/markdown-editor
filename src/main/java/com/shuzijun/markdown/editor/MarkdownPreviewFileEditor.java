@@ -4,10 +4,16 @@ import com.google.common.escape.Escaper;
 import com.google.common.net.PercentEscaper;
 import com.google.common.net.UrlEscapers;
 import com.intellij.ide.structureView.StructureViewBuilder;
+import com.intellij.ide.structureView.StructureView;
+import com.intellij.ide.structureView.StructureViewFactory;
+import com.intellij.ide.structureView.StructureViewModel;
+import com.intellij.ide.structureView.StructureViewModelBase;
+import com.intellij.ide.structureView.StructureViewTreeElement;
 import com.intellij.ide.ui.UISettings;
 import com.intellij.ide.ui.UISettingsListener;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.lang.LanguageStructureViewBuilder;
+import com.intellij.navigation.ItemPresentation;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -26,7 +32,9 @@ import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.util.io.FileUtilRt;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ide.util.treeView.smartTree.TreeElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiManager;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
@@ -200,7 +208,75 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         VirtualFile file = FileDocumentManager.getInstance().getFile(myDocument);
         if (file == null || !file.isValid()) return null;
         PsiFile psiFile = PsiManager.getInstance(myProject).findFile(file);
-        return psiFile == null ? null : LanguageStructureViewBuilder.getInstance().getStructureViewBuilder(psiFile);
+        StructureViewBuilder delegate = psiFile == null
+                ? null
+                : LanguageStructureViewBuilder.getInstance().getStructureViewBuilder(psiFile);
+        if (delegate == null) return null;
+
+        return new StructureViewBuilder() {
+            @Override
+            public StructureView createStructureView(@NotNull FileEditor editor, @NotNull Project project) {
+                StructureView delegateView = delegate.createStructureView(editor, project);
+                StructureViewModel delegateModel = delegateView.getTreeModel();
+                StructureViewModel model = new StructureViewModelBase(
+                        psiFile,
+                        new PreservingStructureElement(delegateModel.getRoot())
+                );
+                StructureView view = StructureViewFactory.getInstance(project)
+                        .createStructureView(editor, model, project);
+                Disposer.register(view, delegateView);
+                return view;
+            }
+        };
+    }
+
+    private final class PreservingStructureElement implements StructureViewTreeElement {
+        private final StructureViewTreeElement delegate;
+
+        private PreservingStructureElement(StructureViewTreeElement delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public Object getValue() {
+            return delegate.getValue();
+        }
+
+        @Override
+        public ItemPresentation getPresentation() {
+            return delegate.getPresentation();
+        }
+
+        @Override
+        public TreeElement[] getChildren() {
+            TreeElement[] children = delegate.getChildren();
+            TreeElement[] wrapped = new TreeElement[children.length];
+            for (int i = 0; i < children.length; i++) {
+                wrapped[i] = children[i] instanceof StructureViewTreeElement structureElement
+                        ? new PreservingStructureElement(structureElement)
+                        : children[i];
+            }
+            return wrapped;
+        }
+
+        @Override
+        public boolean canNavigate() {
+            return getValue() instanceof PsiElement;
+        }
+
+        @Override
+        public boolean canNavigateToSource() {
+            return canNavigate();
+        }
+
+        @Override
+        public void navigate(boolean requestFocus) {
+            if (!(getValue() instanceof PsiElement element)) return;
+            String heading = element.getText().replaceFirst("^\\s*#+\\s*", "").trim();
+            if (!heading.isEmpty()) {
+                scrollToAnchor(heading);
+            }
+        }
     }
 
     @Override
