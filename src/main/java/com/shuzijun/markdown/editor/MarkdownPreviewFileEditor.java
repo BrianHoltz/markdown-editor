@@ -68,6 +68,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 /**
  * @author shuzijun
@@ -274,7 +275,10 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
             if (!(getValue() instanceof PsiElement element)) return;
             String heading = element.getText().replaceFirst("^\\s*#+\\s*", "").trim();
             if (!heading.isEmpty()) {
-                scrollToAnchor(heading);
+                String slug = heading.toLowerCase(Locale.ROOT)
+                        .replaceAll("[^\\p{L}\\p{N}\\p{M}_\\- ]", "")
+                        .replace(" ", "-");
+                scrollToAnchor(slug);
             }
         }
     }
