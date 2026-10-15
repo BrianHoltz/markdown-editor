@@ -320,7 +320,7 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
                     .replace("{{serverToken}}", StringUtils.isNotBlank(servicePath.getParameters()) ? servicePath.getParameters().substring(1) : "")
                     .replace("{{filePath}}", URL_FRAGMENT_ESCAPER.escape(myFile.getPath()))
                     .replace("{{Lang}}", PropertiesUtils.getInfo("Lang"))
-                    .replace("{{darcula}}", isDarkTheme(EditorColorsManager.getInstance().getGlobalScheme().getDefaultBackground()) + "")
+                    .replace("{{darcula}}", isDarkTheme() + "")
                     .replace("{{toolbarHidden}}", PropertiesComponent.getInstance().getBoolean(PluginConstant.editorToolbarHiddenKey, false) + "")
                     .replace("{{rawHtmlHidden}}", PropertiesComponent.getInstance().getBoolean(PluginConstant.editorRawHtmlHiddenKey, false) + "")
                     .replace("{{userTemplate}}", templateFile.exists() + "")
@@ -349,7 +349,7 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
     private void refreshAppearance() {
         ApplicationManager.getApplication().invokeLater(() -> {
             if (myPanel == null || myPanel.isDisposed()) return;
-            myPanel.updateStyle(getStyle(false), isDarkTheme(EditorColorsManager.getInstance().getGlobalScheme().getDefaultBackground()));
+            myPanel.updateStyle(getStyle(false), isDarkTheme());
             // JBCefBrowserBase takes a linear scale, not CefBrowser's logarithmic zoom.
             myPanel.setZoomLevel(UISettings.getInstance().getCurrentIdeScale());
         });
@@ -358,14 +358,17 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
     private String getStyle(boolean isTag) {
         try {
             EditorColorsScheme editorColorsScheme = EditorColorsManager.getInstance().getGlobalScheme();
-            Color defaultBackground = editorColorsScheme.getDefaultBackground();
+            boolean darkTheme = isDarkTheme();
+            Color defaultBackground = JBColor.background();
 
-            Color text = editorColorsScheme.getDefaultForeground();
+            Color text = UIManager.getColor("Label.foreground");
+            if (text == null) {
+                text = editorColorsScheme.getDefaultForeground();
+            }
             String fontFamily = "font-family:\"" + editorColorsScheme.getEditorFontName() + "\",\"Helvetica Neue\",\"Luxi Sans\",\"DejaVu Sans\"," +
                     "\"Hiragino Sans GB\",\"Microsoft Yahei\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Noto Color Emoji\",\"Segoe UI Symbol\"," +
                     "\"Android Emoji\",\"EmojiSymbols\";";
             StringBuilder sb = new StringBuilder(isTag ? "<style id=\"ideaStyle\">" : "");
-            boolean darkTheme = isDarkTheme(defaultBackground);
             sb.append(darkTheme ? ".vditor--dark,body" : ".vditor,body").append("{--panel-background-color:").append(toHexColor(defaultBackground))
                     .append(";--textarea-background-color:").append(toHexColor(defaultBackground)).append(";");
             sb.append("--toolbar-background-color:").append(toHexColor(JBColor.background())).append(";");
@@ -419,9 +422,8 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
 
     }
 
-    private boolean isDarkTheme(Color background) {
-        double luminance = (0.2126 * background.getRed() + 0.7152 * background.getGreen() + 0.0722 * background.getBlue()) / 255;
-        return luminance < 0.5;
+    private boolean isDarkTheme() {
+        return !JBColor.isBright();
     }
 
     private String toHexColor(Color color) {
