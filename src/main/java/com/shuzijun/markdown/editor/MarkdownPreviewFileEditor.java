@@ -174,6 +174,7 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
 
     @Override
     public @Nullable JComponent getPreferredFocusedComponent() {
+        if (toolbarPanel.isVisible()) return searchField;
         return myPanel != null ? myPanel.getComponent() : null;
     }
 
@@ -449,8 +450,14 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         if (visible) {
             ApplicationManager.getApplication().invokeLater(() -> {
                 if (myProject.isDisposed() || !toolbarPanel.isShowing()) return;
-                IdeFocusManager.getInstance(myProject).requestFocus(searchField, true);
-                searchField.selectAll();
+                // Windowed JCEF owns native focus independently of Swing on macOS.
+                // Release it before transferring focus, after pending IDE transfers settle.
+                myPanel.getCefBrowser().setFocus(false);
+                IdeFocusManager.getInstance(myProject).doWhenFocusSettlesDown(() -> {
+                    if (myProject.isDisposed() || !toolbarPanel.isShowing()) return;
+                    IdeFocusManager.getInstance(myProject).requestFocus(searchField, true);
+                    searchField.selectAll();
+                });
             });
         } else {
             searchField.setText("");
