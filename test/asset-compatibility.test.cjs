@@ -24,7 +24,7 @@ test('bundled Lute provides every Vditor initialization method', () => {
 test('all bundled template assets share the cache-isolated resource prefix', () => {
     const template = fs.readFileSync(path.join(resources, 'template/default.html'), 'utf8')
     assert.doesNotMatch(template, /\{\{service\}\}resources\/vditor/)
-    assert.equal((template.match(/\{\{service\}\}\{\{resources\}\}vditor/g) || []).length, 5)
+    assert.equal((template.match(/\{\{service\}\}\{\{resources\}\}vditor/g) || []).length, 6)
     assert.match(template, /vditorThemeCDN = .*vditorCDN \+ "\/dist\/css\/content-theme"/)
     const controller = fs.readFileSync(path.join(__dirname, '../src/main/java/com/shuzijun/markdown/controller/ResourcesController.java'), 'utf8')
     assert.match(controller, /return "resources\/" \+ LAST_MODIFIED \+ "\/"/)

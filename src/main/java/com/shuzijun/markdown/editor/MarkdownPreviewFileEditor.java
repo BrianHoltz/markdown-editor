@@ -27,6 +27,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorLocation;
 import com.intellij.openapi.fileEditor.FileEditorState;
+import com.intellij.openapi.wm.IdeFocusManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.UserDataHolderBase;
@@ -93,6 +94,7 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
 
     private final JBPanel toolbarPanel = new JBPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
     private final JBTextField searchField = new JBTextField();
+    private final JBLabel searchCount = new JBLabel();
 
     private final Url servicePath = BuiltInServerManager.getInstance().addAuthToken(Urls.parseEncoded("http://localhost:" + BuiltInServerManager.getInstance().getPort() + PreviewStaticServer.PREFIX));
     private final String templateHtmlFile = "template/default.html";
@@ -113,6 +115,11 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
             myHtmlPanelWrapper.add(tempPanel.getComponent(), BorderLayout.CENTER);
 
             MarkdownHtmlPanel finalTempPanel = tempPanel;
+            finalTempPanel.setSearchCountListener((query, total) -> {
+                if (!searchField.getText().equals(query)) return;
+                searchCount.setText(query.isEmpty() ? "" : total + " matches");
+                searchCount.getAccessibleContext().setAccessibleName(searchCount.getText());
+            });
             toolbarPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.border()));
             searchField.setPreferredSize(new Dimension(260, 28));
             searchField.putClientProperty("JTextField.placeholderText", "Search in Markdown");
@@ -127,9 +134,10 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
             JButton nextButton = createSearchButton("Next", "Next match", () -> finalTempPanel.browserFind(searchField.getText(), true));
             JButton closeButton = createSearchButton("Close", "Close search", () -> {
                 searchField.setText("");
-                toolbarPanel.setVisible(false);
+                visibleToolbarPanel(false);
             });
             toolbarPanel.add(searchField);
+            toolbarPanel.add(searchCount);
             toolbarPanel.add(previousButton);
             toolbarPanel.add(nextButton);
             toolbarPanel.add(closeButton);
@@ -436,10 +444,17 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
 
     public void visibleToolbarPanel(boolean visible) {
         toolbarPanel.setVisible(visible);
+        myHtmlPanelWrapper.revalidate();
+        myHtmlPanelWrapper.repaint();
         if (visible) {
-            searchField.requestFocus();
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (myProject.isDisposed() || !toolbarPanel.isShowing()) return;
+                IdeFocusManager.getInstance(myProject).requestFocus(searchField, true);
+                searchField.selectAll();
+            });
         } else {
             searchField.setText("");
+            searchCount.setText("");
         }
     }
 
