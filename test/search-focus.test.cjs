@@ -117,3 +117,12 @@ public class SearchFocusHarness {
         fs.rmSync(directory, {recursive: true, force: true})
     }
 })
+
+// A Swing focus assertion cannot detect a native NSView retaining text input.
+test('file editors use off-screen rendering instead of a competing native keyboard view', () => {
+    const panel = fs.readFileSync(path.join(__dirname,
+        '../src/main/java/com/shuzijun/markdown/editor/MarkdownHtmlPanel.java'), 'utf8')
+    const method = panel.slice(panel.indexOf('private static boolean offScreenRendering'),
+        panel.indexOf('class MyMultiPanel'))
+    assert.match(method, /return isFileEditor;/)
+})

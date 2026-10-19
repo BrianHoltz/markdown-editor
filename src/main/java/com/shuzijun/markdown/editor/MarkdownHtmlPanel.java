@@ -427,11 +427,9 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
     }
 
     private static boolean offScreenRendering(boolean isFileEditor) {
-        /*if (!isFileEditor) {
-            return false;
-        }
-        return Registry.is("ide.browser.jcef.markdownView.osr.enabled", true);*/
-        return false;
+        // A windowed macOS browser can retain native text input after Swing focuses search.
+        // OSR routes editor input through Swing, sharing one keyboard focus owner.
+        return isFileEditor;
     }
 
     class MyMultiPanel extends MultiPanel implements DataProvider {
