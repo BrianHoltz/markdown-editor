@@ -9,6 +9,7 @@ import com.intellij.ide.structureView.StructureViewFactory;
 import com.intellij.ide.structureView.StructureViewModel;
 import com.intellij.ide.structureView.StructureViewModelBase;
 import com.intellij.ide.structureView.StructureViewTreeElement;
+import com.intellij.ide.ui.LafManagerListener;
 import com.intellij.ide.ui.UISettings;
 import com.intellij.ide.ui.UISettingsListener;
 import com.intellij.ide.util.PropertiesComponent;
@@ -160,12 +161,18 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         fileApplicationService.putVirtualFile(myFile.getPath(), isPresentableUrl ? project.getPresentableUrl() : project.getName(), myFile);
 
         MessageBusConnection settingsConnection = ApplicationManager.getApplication().getMessageBus().connect(this);
+        settingsConnection.subscribe(LafManagerListener.TOPIC, manager -> refreshAppearance());
         settingsConnection.subscribe(EditorColorsManager.TOPIC, scheme -> refreshAppearance());
         settingsConnection.subscribe(UISettingsListener.TOPIC, settings -> refreshAppearance());
         settingsConnection.subscribe(MarkdownPreviewSettings.ChangeListener.TOPIC, settings -> refreshAppearance());
 
     }
 
+
+    @Override
+    public void selectNotify() {
+        refreshAppearance();
+    }
 
     @Override
     public @NotNull JComponent getComponent() {
