@@ -49,7 +49,10 @@
     const vditorThemeCDN = userTemplate ? "{{service}}assets/vditor/content-theme" : vditorCDN + "/dist/css/content-theme";
     let initError = true;
     let fileValue = "";
-    let saveTime = Date.now();
+    let saveTime = 0;
+    let externalRefreshTimer = null;
+    let externalRefreshInFlight = false;
+    let externalRefreshPending = false;
     let darcula = "{{darcula}}" === "true";
     let ideaThemeReady = false;
     const appearance = {
@@ -124,7 +127,7 @@
             } else {
                 fileValue = md;
                 syncedTip(true, data)
-                saveTime = Date.now() + 5000;
+                saveTime = 0;
             }
         }).fail(function () {
             updateSyncState("failed");
@@ -132,19 +135,35 @@
         })
     }
 
-    function editFocus(md) {
+    function editFocus() {
+        if (initError || vditor.getValue() !== fileValue) return;
         if (Date.now() <= saveTime) {
+            clearTimeout(externalRefreshTimer);
+            externalRefreshTimer = setTimeout(editFocus, saveTime - Date.now() + 1);
             return;
         }
-        $.get(fileUrl, function (data) {
-            if (md !== data) {
-                vditor.setValue(data);
-                fileValue = vditor.getValue();
-                syncedTip(true, data)
+        if (externalRefreshInFlight) {
+            externalRefreshPending = true;
+            return;
+        }
+        const baseline = fileValue;
+        externalRefreshInFlight = true;
+        $.ajax({url: fileUrl, async: true, cache: false, success(data) {
+            // A response must not replace typing or a save completed since this read began.
+            if (fileValue !== baseline || vditor.getValue() !== baseline || data === baseline) return;
+            const x = window.scrollX, y = window.scrollY;
+            vditor.setValue(data);
+            fileValue = vditor.getValue();
+            window.scrollTo(x, y);
+            syncedTip(true, fileValue);
+        }}).always(function () {
+            externalRefreshInFlight = false;
+            if (externalRefreshPending) {
+                externalRefreshPending = false;
+                clearTimeout(externalRefreshTimer);
+                externalRefreshTimer = setTimeout(editFocus, 75);
             }
-        }).fail(function () {
-            vditor.tip("Get file request error", 0);
-        })
+        });
     }
 
     function editInput(md) {
@@ -218,7 +237,7 @@
         $.get(fileUrl, function (data) {
             vditor.setValue(data);
             fileValue = vditor.getValue();
-            saveTime = Date.now() + 5000;
+            saveTime = 0;
             syncedTip(true, data);
         }).fail(function () {
             vditor.tip("Get file request error", 0);
@@ -719,7 +738,7 @@
         "upload": {
             "url": uploadUrl,
             format(files, responseText) {
-                saveTime = Date.now() + 5000;
+                saveTime = 0;
                 return responseText;
             }
         },
