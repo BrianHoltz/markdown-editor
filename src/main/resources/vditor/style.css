@@ -261,7 +261,9 @@ body.markdown-raw-html-hidden .markdown-html-only {
 .vditor-reset table td,
 .vditor-reset table th {
     white-space: normal;
-    overflow-wrap: anywhere;
+    /* Preserve word widths during auto layout; only break long tokens as a fallback. */
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 
 .vditor-reset table img {

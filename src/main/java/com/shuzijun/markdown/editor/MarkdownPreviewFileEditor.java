@@ -165,6 +165,9 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         settingsConnection.subscribe(EditorColorsManager.TOPIC, scheme -> refreshAppearance());
         settingsConnection.subscribe(UISettingsListener.TOPIC, settings -> refreshAppearance());
         settingsConnection.subscribe(MarkdownPreviewSettings.ChangeListener.TOPIC, settings -> refreshAppearance());
+        if (myPanel != null && myDocument != null) {
+            new ExternalFileSync(myFile, myDocument, myPanel, myHtmlPanelWrapper, this);
+        }
 
     }
 
@@ -375,7 +378,7 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         try {
             EditorColorsScheme editorColorsScheme = EditorColorsManager.getInstance().getGlobalScheme();
             boolean darkTheme = isDarkTheme();
-            Color defaultBackground = JBColor.background();
+            Color defaultBackground = editorColorsScheme.getDefaultBackground();
 
             Color text = UIManager.getColor("Label.foreground");
             if (text == null) {
