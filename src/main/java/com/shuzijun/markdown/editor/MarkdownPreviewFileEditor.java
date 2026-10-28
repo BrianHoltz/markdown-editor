@@ -77,6 +77,8 @@ import java.util.Locale;
  */
 public class MarkdownPreviewFileEditor extends UserDataHolderBase implements FileEditor {
 
+    private static final com.intellij.openapi.util.Key<String> CONTEXT_SELECTION = com.intellij.openapi.util.Key.create("brian.editor.selection.v1");
+
     private static final Logger LOG = Logger.getInstance(MarkdownPreviewFileEditor.class);
 
     static final String URL_PATH_OTHER_SAFE_CHARS_LACKING_PLUS =
@@ -111,6 +113,10 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         MarkdownHtmlPanel tempPanel = null;
         try {
             tempPanel = new MarkdownHtmlPanel(url, project, true);
+            tempPanel.setContextSelectionListener(value -> {
+                if (!myProject.isDisposed() && myFile.isValid()) myFile.putUserData(
+                    CONTEXT_SELECTION, value.isEmpty() ? null : value);
+            });
             tempPanel.loadMyHTML(createHtml(isPresentableUrl, tempPanel), url);
             tempPanel.setZoomLevel(UISettings.getInstance().getCurrentIdeScale());
             myHtmlPanelWrapper.add(tempPanel.getComponent(), BorderLayout.CENTER);
@@ -304,6 +310,7 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
 
     @Override
     public void dispose() {
+        myFile.putUserData(CONTEXT_SELECTION, null);
         ApplicationManager.getApplication().getService(FileApplicationService.class)
                 .removeVirtualFile(myFile.getPath(), isPresentableUrl ? myProject.getPresentableUrl() : myProject.getName());
         if (myPanel != null) {

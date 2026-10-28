@@ -81,6 +81,8 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
     private final JBCefJSQuery selectValueJSQuery;
     private final JBCefJSQuery appearanceJSQuery;
     private final JBCefJSQuery searchCountJSQuery;
+    private final JBCefJSQuery contextSelectionJSQuery;
+    private java.util.function.Consumer<String> contextSelectionListener = value -> {};
     private BiConsumer<String, Integer> searchCountListener = (query, total) -> {};
     private String lastSearchText = "";
 
@@ -211,6 +213,11 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
             CopyPasteManager.getInstance().setContents(new StringSelection(value));
             return null;
         });
+        contextSelectionJSQuery = JBCefJSQuery.create((JBCefBrowserBase)this);
+        contextSelectionJSQuery.addHandler(value -> {
+            if (value.length() <= 4096) ApplicationManager.getApplication().invokeLater(() -> contextSelectionListener.accept(value));
+            return null;
+        });
         searchCountJSQuery = JBCefJSQuery.create((JBCefBrowserBase)this);
         searchCountJSQuery.addHandler(value -> {
             int separator = value.indexOf('\n');
@@ -273,6 +280,7 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
         Disposer.dispose(selectValueJSQuery);
         Disposer.dispose(appearanceJSQuery);
         Disposer.dispose(searchCountJSQuery);
+        Disposer.dispose(contextSelectionJSQuery);
         super.dispose();
     }
 
@@ -391,8 +399,10 @@ public class MarkdownHtmlPanel extends JCEFHtmlPanel {
         String saveAppearance = "function jsSaveAppearance(toolbarHidden, rawHtmlHidden){\n" +
                 appearanceJSQuery.inject("[toolbarHidden, rawHtmlHidden].join(',')") +
                 "    }\n";
-        return savaTime + copy + cut + paste + blur + saveAppearance;
+        return savaTime + copy + cut + paste + blur + saveAppearance + "function jsPublishContextSelection(value){" + contextSelectionJSQuery.inject("value") + "}\n";
     }
+
+    public void setContextSelectionListener(java.util.function.Consumer<String> listener) { contextSelectionListener = listener; }
 
     public void setSearchCountListener(BiConsumer<String, Integer> listener) {
         searchCountListener = listener;
