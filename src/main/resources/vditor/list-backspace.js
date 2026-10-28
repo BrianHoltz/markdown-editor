@@ -2,11 +2,16 @@
 // sibling is deleted. Backspacing there creates a paragraph and loosens the list.
 // Treat that invisible boundary as navigation, not a content edit.
 function fixListBackspace(event) {
-  if (event.key !== 'Backspace' || event.altKey || event.ctrlKey ||
+  if (!['Backspace', 'Delete'].includes(event.key) || event.altKey || event.ctrlKey ||
       event.metaKey || event.shiftKey || event.isComposing) return
   const selection = window.getSelection()
-  if (!selection || !selection.isCollapsed || !selection.rangeCount) return
+  if (!selection || !selection.rangeCount) return
   const range = selection.getRangeAt(0)
+  if (!selection.isCollapsed) {
+    fixListSelectionDelete(event, selection, range)
+    return
+  }
+  if (event.key !== 'Backspace') return
   const node = range.startContainer
   const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement
   const paragraph = element && element.closest('p')
@@ -59,6 +64,48 @@ function fixListBackspace(event) {
   event.preventDefault()
   event.stopImmediatePropagation()
   selection.collapse(lastText, lastText.textContent.length)
+}
+
+// A line selection may end at the next item's first character without selecting
+// that character. Native deletion merges those items, even across list depths.
+function fixListSelectionDelete(event, selection, range) {
+  const elementAt = node => node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement
+  const item = elementAt(range.startContainer)?.closest('li')
+  const next = elementAt(range.endContainer)?.closest('li')
+  const root = item?.closest('[contenteditable=true]')
+  if (!item || !next || item === next || !root || !root.contains(next) ||
+      !root.closest('.vditor-wysiwyg, .vditor-ir')) return
+  const before = document.createRange()
+  before.selectNodeContents(item)
+  before.setEnd(range.startContainer, range.startOffset)
+  const prefix = document.createRange()
+  prefix.selectNodeContents(next)
+  prefix.setEnd(range.endContainer, range.endOffset)
+  const meaningful = fragment => fragment.textContent.replace(/[\s\u200b]/g, '') ||
+    fragment.querySelector('img, input, code, br')
+  if (meaningful(before.cloneContents()) || meaningful(prefix.cloneContents())) return
+  const remainder = range.cloneRange()
+  remainder.setStartAfter(item)
+  // Only a complete leaf item and structural whitespace may be selected.
+  if (item.querySelector('ul, ol') || meaningful(remainder.cloneContents())) return
+  let list = item.parentElement
+  while (list.parentElement !== root && list.parentElement.closest('ul, ol')) {
+    list = list.parentElement.closest('ul, ol')
+  }
+  if (!list.contains(next)) return
+  const items = Array.from(list.querySelectorAll('li'))
+  const copy = list.cloneNode(true)
+  const removed = copy.querySelectorAll('li')[items.indexOf(item)]
+  const parent = removed.parentElement
+  removed.remove()
+  if (!parent.children.length) parent.remove()
+  event.preventDefault()
+  event.stopImmediatePropagation()
+  range.selectNode(list)
+  selection.removeAllRanges()
+  selection.addRange(range)
+  // Native insertion records one undoable edit and emits Vditor's input event.
+  document.execCommand('insertHTML', false, copy.outerHTML)
 }
 
 if (typeof module !== 'undefined') module.exports = { fixListBackspace }
