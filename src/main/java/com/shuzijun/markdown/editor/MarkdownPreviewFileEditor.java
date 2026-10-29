@@ -425,7 +425,7 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
             Color borderColor = JBColor.border();
             Color codeBackground = darkTheme ? new Color(255, 255, 255, 18) : new Color(0, 0, 0, 8);
             Color quoteBackground = darkTheme ? new Color(255, 255, 255, 12) : new Color(0, 0, 0, 6);
-            sb.append(".vditor-reset a{color:").append(toHexColor(linkColor)).append(";}");
+            sb.append(".vditor{--markdown-preview-link-color:").append(toHexColor(linkColor)).append(";}");
             sb.append(".vditor-reset h1,.vditor-reset h2,.vditor-reset h3,.vditor-reset h4,.vditor-reset h5,.vditor-reset h6{");
             if (text != null) {
                 sb.append("color:").append(toHexColor(text)).append(";");
