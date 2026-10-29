@@ -109,6 +109,8 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         myDocument = FileDocumentManager.getInstance().getDocument(myFile);
         myHtmlPanelWrapper = new JPanel(new BorderLayout());
         isPresentableUrl = project.getPresentableUrl() != null;
+        Disposer.register(this, ApplicationManager.getApplication().getService(FileApplicationService.class)
+                .registerVirtualFile(myFile.getPath(), isPresentableUrl ? project.getPresentableUrl() : project.getName(), myFile));
         String url = UrlEscapers.urlFragmentEscaper().escape(URLUtil.FILE_PROTOCOL + URLUtil.SCHEME_SEPARATOR + FileUtils.separator() + myFile.getPath());
         MarkdownHtmlPanel tempPanel = null;
         try {
@@ -162,9 +164,6 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
         }
         myPanel = tempPanel;
         myHtmlPanelWrapper.repaint();
-
-        FileApplicationService fileApplicationService = ApplicationManager.getApplication().getService(FileApplicationService.class);
-        fileApplicationService.putVirtualFile(myFile.getPath(), isPresentableUrl ? project.getPresentableUrl() : project.getName(), myFile);
 
         MessageBusConnection settingsConnection = ApplicationManager.getApplication().getMessageBus().connect(this);
         settingsConnection.subscribe(LafManagerListener.TOPIC, manager -> refreshAppearance());
@@ -311,8 +310,6 @@ public class MarkdownPreviewFileEditor extends UserDataHolderBase implements Fil
     @Override
     public void dispose() {
         myFile.putUserData(CONTEXT_SELECTION, null);
-        ApplicationManager.getApplication().getService(FileApplicationService.class)
-                .removeVirtualFile(myFile.getPath(), isPresentableUrl ? myProject.getPresentableUrl() : myProject.getName());
         if (myPanel != null) {
             Disposer.dispose(myPanel);
         }
